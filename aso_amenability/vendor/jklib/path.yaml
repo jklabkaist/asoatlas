@@ -1,0 +1,5 @@
+Reference:
+  Genome:
+    UCSC:
+      hg38: &DEFAULT_GENOME "datafiles/hg38.2bit"
+      default: *DEFAULT_GENOME

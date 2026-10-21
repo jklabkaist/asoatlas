@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+
+# reference files linked by aso_amenability/setup_data.sh
+aso_amenability/vendor/jklib/datafiles/*
+aso_amenability/vendor/jkspliceai/models/*
+aso_amenability/vendor/jkspliceai/annotations/*
+!aso_amenability/vendor/*/*/.gitkeep
+
+# example output (expected/ is tracked)
+02_ASO_amenability/example/*.amenability.vcf
+03_incidence/example/example.incidence.vcf
+03_incidence/example/example.variant_table.tsv
+03_incidence/example/example.gene_incidence*.tsv
