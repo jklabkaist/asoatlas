@@ -33,7 +33,8 @@ genes of the paper). Genes with no observed variant stay in the gene table with 
 incidence. The target-organ TSV (`HGNC_num`, `GT_Target_Organs`) fills the
 `ASO_target_organs` column and defines the ASO-target subset, which also drops the genes
 that already have an approved therapy. `--mane` and `--refflat` default to the annotation
-files bundled with [`aso_amenability`](../aso_amenability).
+files bundled with [`aso_amenability`](../aso_amenability). The incidence model and the
+credible intervals live in [`incidence.py`](incidence.py), shared by steps 1 and 3.
 
 ## Unit of analysis: the variant-transcript pair
 

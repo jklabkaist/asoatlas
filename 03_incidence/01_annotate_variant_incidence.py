@@ -14,10 +14,6 @@ variant belongs to more than one pair.
 
 import argparse
 import collections
-import os
-import sys
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from incidence import (CALL_RATE_MIN, IR_amenable, IR_pathogenic, beta_quantiles,
                        is_cohort, is_hypomorphic, is_xlr_hypomorphic, newborns,
