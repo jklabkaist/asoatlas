@@ -103,6 +103,6 @@ being installed.
   canonical-splice damage, `Possibly amenable` when it causes exon skipping or retention.
 - Incidence uses `(sum AF)^2` for autosomal recessive genes and `0.5 * sum(female AF)`
   for X-linked ones, excluding combinations of two hypomorphic alleles, and is scaled to
-  3.7M US and 640K UK annual births.
+  3.7M US and 690K UK annual births.
 - SpliceAI scores can differ in the third decimal between GPU and CPU, and the credible
   intervals in their last digit between SciPy versions; neither changes a call.

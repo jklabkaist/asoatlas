@@ -62,7 +62,7 @@ cohorts does not fit this incidence model, so no gnomAD incidence is reported.
 | hypomorphic alleles | bi-hypomorphic combinations are subtracted (>= 2 homozygotes in any cohort) | hypomorphic variants are dropped (>= 2 hemizygotes / female homozygotes) |
 
 `PR` is the incidence, `EN` the expected number of patients among the newborns of one
-year (3.7M for All of Us / US, 640K for UK Biobank / UK), `PRd` the fraction of the
+year (3.7M for All of Us / US, 690K for UK Biobank / UK), `PRd` the fraction of the
 gene's cases the variant set explains. A variant is used for a cohort only when it is
 called in >= 30% of that cohort and is not flagged `Ambiguous` by step 01.
 

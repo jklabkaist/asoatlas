@@ -9,7 +9,7 @@ from scipy.stats import beta as _beta_dist
 
 # ── VCF INFO conventions ──────────────────────────────────────────────────────
 COHORT_NEWBORNS = {'AoU_CDRv8_AF': 3_700_000,   # All of Us: annual US newborns
-                   'ukbb_AF': 640_000}          # UK Biobank: annual UK newborns
+                   'ukbb_AF': 690_000}          # UK Biobank: annual UK newborns
 
 CALL_RATE_MIN = 0.3                             # minimum AN / max(AN) of a cohort
 
