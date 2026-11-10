@@ -106,3 +106,14 @@ being installed.
   3.7M US and 690K UK annual births.
 - SpliceAI scores can differ in the third decimal between GPU and CPU, and the credible
   intervals in their last digit between SciPy versions; neither changes a call.
+
+## Code authorship and AI assistance
+
+The analysis, the pipeline and the underlying code were designed and written by the
+authors. Claude Opus 5 (Anthropic), used through Claude Code between October and
+November 2026, assisted with preparing this release: reorganising the working scripts
+into the three steps above, replacing hard-coded paths with command-line arguments,
+writing the step READMEs and the runnable examples, and reviewing the reorganised code
+against the original scripts for behavioural equivalence. It was not used to design the
+method or to generate the results. Every figure and table in the paper comes from the
+code as deposited here, and the authors are fully responsible for it.
