@@ -45,13 +45,19 @@ python 06_filter_pathogenic_variants.py \
 python 07_filter_af_outlier.py \
     -i <annotated>.cs_plp.vcf \
     -o <annotated>.cs_plp.outfilt.vcf
+
+# 8. merge the records of one allele held under several VariationIDs
+python 08_merge_duplicate_alleles.py \
+    -i <annotated>.cs_plp.outfilt.vcf \
+    -o <annotated>.cs_plp.outfilt.dedup.vcf \
+    -r merged_alleles.tsv
 ```
 
 `02_run_vep.sh` reads its reference paths from the environment:
 `VEP_SIF`, `VEP_CACHE_DIR`, `VEP_PLUGIN_DIR`, `VEP_FASTA_DIR`, `REVEL_DIR`
 (optional: `VEP_FASTA`, `REVEL_TSV`, `EVE_VCF`, `FORK`, `CONDA_BASE`, `CONDA_ENV`).
 
-## INFO fields added by steps 6-7
+## INFO fields added by steps 6-8
 
 | field | meaning |
 | --- | --- |
@@ -64,6 +70,8 @@ python 07_filter_af_outlier.py \
 | `Predominant_VUS` | `subs_B/LB > 0` and `subs_uncertain + subs_B/LB > subs_P/LP` |
 | `Ambiguous` | any of the three flags above; step 7 adds the frequency-outlier variants |
 | `over3x99tile_AoU`, `over3x99tile_UKB`, `over3x99tile_gnomAD` | cohort AF above 3 x the 99th percentile of the P/LP variants of the same gene (`-` for variants already ambiguous) |
+| `Name_merged` | step 8: the ClinVar names of all records merged into the allele |
+| `ClinVar_records_merged` | step 8: the number of records merged into the allele |
 
 Submissions are counted after restricting to traits of type `Disease`, `Finding` or
 `PhenotypeInstruction` and dropping somatic / cancer-susceptibility traits.
@@ -72,6 +80,17 @@ Step 7 computes the per-gene percentile over the non-ambiguous variants of the i
 re-flags a frequency outlier as `Ambiguous` only when the variant also carries a B/LB
 submission or >= 2 VUS submissions.
 
+ClinVar occasionally holds one allele under two VariationIDs, for example a c.-named
+deletion and a genomic record of the same change. Step 8 merges the records with the same
+CHROM, POS, REF and ALT, so the allele is counted once: submission counts are summed, the
+ClinVar fields are `|`-joined (`VariationID=243031|1322084`), `Name` keeps the NM_ name,
+the step-6 flags are recomputed from the summed counts and the step-7 rule is re-applied
+with the frequency-outlier flags, which depend on the allele frequency only. The script
+stops if the records differ in any other field. In the 2025-07 release it merges 12
+records into 6 alleles, 4 of them in the AR / XLR gene set (COL7A1, SCARB2, CHRNE, SEC23B).
+
 Step 6 rewrites its fields in place, so it can be re-run after any annotation step. In the
 paper run it was applied once to the sorted VCF before the frequency joins, to cut the
-number of variants carried through VEP.
+number of variants carried through VEP, and step 8 was applied after the amenability
+annotation of step 02; the merged records carry identical annotations, so the order does
+not change the result.

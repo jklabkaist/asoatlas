@@ -54,11 +54,12 @@ python 05_annotate_low_penetrance.py -i clinvar.scv.tsv -o clinvar.scv.lowP.tsv
 python 06_filter_pathogenic_variants.py -i $IN.sorted.joined.VEP.MANE.vcf \
                                         -s clinvar.scv.lowP.tsv -o $IN.cs_plp.vcf
 python 07_filter_af_outlier.py -i $IN.cs_plp.vcf -o $IN.cs_plp.outfilt.vcf
+python 08_merge_duplicate_alleles.py -i $IN.cs_plp.outfilt.vcf -o $IN.cs_plp.outfilt.dedup.vcf
 
 # 2. ASO amenability
 cd ../02_ASO_amenability
-python annotate_vcf.py -i $IN.cs_plp.outfilt.vcf -o $IN.amenability.vcf -b 500
-#   on a GPU node:  sbatch slurm_annotate_vcf.sh $IN.cs_plp.outfilt.vcf
+python annotate_vcf.py -i $IN.cs_plp.outfilt.dedup.vcf -o $IN.amenability.vcf -b 500
+#   on a GPU node:  sbatch slurm_annotate_vcf.sh $IN.cs_plp.outfilt.dedup.vcf
 
 # 3. Incidence
 cd ../03_incidence
@@ -99,6 +100,8 @@ being installed.
 
 - Every quantity is computed per variant-transcript pair, so a variant annotated to two
   overlapping genes is scored against each gene's own allele pool.
+- ClinVar records that describe the same allele under different VariationIDs are merged
+  in step 1, so each allele enters the incidence once.
 - A variant is `Probably amenable` when it gains mis-splicing without severe coding or
   canonical-splice damage, `Possibly amenable` when it causes exon skipping or retention.
 - Incidence uses `(sum AF)^2` for autosomal recessive genes and `0.5 * sum(female AF)`
