@@ -101,7 +101,7 @@ def load_aso_target_organs(path):
 
 
 def load_gene_preset(path, maneD):
-    """Gene:Transcript keys of the genes to tabulate, from a TSV with an HGNC_num column."""
+    """MANE transcripts of the genes to tabulate, keyed by the unversioned Ensembl ID."""
     hgncS = set()
     with open(path) as f:
         hL = f.readline().strip(' \r\n').split('\t')
@@ -109,11 +109,13 @@ def load_gene_preset(path, maneD):
             tokD = dict(zip(hL, line.strip(' \r\n').split('\t')))
             hgncS.add(tokD['HGNC_num'])
 
-    genekeyL = []
+    presetD = {}
     for hgnc in hgncS:
         for td in maneD.get(hgnc, []):
-            genekeyL.append(f"{td['symbol']}:{td['Ensembl_nuc']}")
-    return sorted(set(genekeyL))
+            presetD[td['Ensembl_nuc'].split('.')[0]] = {
+                'tid': td['Ensembl_nuc'], 'hgnc': hgnc, 'mane_symbol': td['symbol'],
+                'mane_key': f"{td['symbol']}:{td['Ensembl_nuc']}"}
+    return presetD
 
 
 def gene_field(vepD, k, field):
@@ -147,7 +149,7 @@ def parse_molcons(molcons):
     return ':'.join([mcL[0], mcL[1], mcL[3]])
 
 
-def collect_gene_variants(input_vcf, gene_presetL, cohortL, filter_ambiguous=True):
+def collect_gene_variants(input_vcf, presetD, cohortL, filter_ambiguous=True):
     """Per gene and cohort, the allele frequencies / counts of the pathogenic
     variants and the index lists of each amenable subset."""
 
@@ -164,8 +166,10 @@ def collect_gene_variants(input_vcf, gene_presetL, cohortL, filter_ambiguous=Tru
 
     most_freq = collections.defaultdict(_empty)
     chrX_genesetS = set()
-    gene_presetS = set(gene_presetL)
-    [most_freq[g] for g in gene_presetL]   # keep genes without any observed variant
+    # keep genes without any observed variant
+    [most_freq[e] for e in sorted(presetD, key=lambda e: presetD[e]['mane_key'])]
+    vep_labelD = {}
+    version_mismatchS = set()
 
     for line in open(input_vcf):
 
@@ -183,14 +187,21 @@ def collect_gene_variants(input_vcf, gene_presetL, cohortL, filter_ambiguous=Tru
         infoD = parse_info(info_txt)
         vepDL = [{k: v for k, v in zip(vephL, vep.split('|'))} for vep in vep_txt.split(',')]
 
+        for vepD in vepDL:
+            enst = vepD['Feature'].split('.')[0]
+            if enst in presetD:
+                vep_labelD.setdefault(enst, f"{vepD['SYMBOL']}:{vepD['Feature']}")
+                if vepD['Feature'] != presetD[enst]['tid']:
+                    version_mismatchS.add((presetD[enst]['tid'], vepD['Feature']))
+
         if filter_ambiguous and infoD['Ambiguous'] == 'True':
             continue
 
         isHypo = is_xlr_hypomorphic(infoD) if chrom == 'chrX' else is_hypomorphic(infoD)
 
         for vepD in vepDL:
-            genekey = f"{vepD['SYMBOL']}:{vepD['Feature']}"
-            if genekey not in gene_presetS:
+            genekey = vepD['Feature'].split('.')[0]
+            if genekey not in presetD:
                 continue
 
             if chrom == 'chrX':
@@ -274,10 +285,19 @@ def collect_gene_variants(input_vcf, gene_presetL, cohortL, filter_ambiguous=Tru
                     if not isHypo:
                         d['NofVar_nonmild_prob'] += 1
 
-    return most_freq, chrX_genesetS
+    # rows are labelled with VEP's symbol, which can differ from the MANE v1.0 one
+    labelD = {e: vep_labelD.get(e, presetD[e]['mane_key']) for e in presetD}
+    metaD = {labelD[e]: presetD[e] for e in presetD}
+    most_freq = {labelD[e]: v for e, v in most_freq.items()}
+    chrX_genesetS = {labelD[e] for e in chrX_genesetS}
+
+    renamed = sorted((m['mane_key'], lab) for lab, m in metaD.items() if lab.split(':')[0] != m['mane_symbol'])
+    print(f"  ENST version differs VEP/MANE : {len(version_mismatchS)} {sorted(version_mismatchS)[:5]}")
+    print(f"  symbol differs VEP/MANE       : {len(renamed)} {renamed}")
+    return most_freq, chrX_genesetS, metaD
 
 
-def build_gene_table(most_freq_D, h, manetD, gdD_ASO, chrX_genesetS=set(),
+def build_gene_table(most_freq_D, h, manetD, gdD_ASO, metaD, chrX_genesetS=set(),
                      cohortL=('AoU_CDRv8_AF', 'ukbb_AF'), n_amen=10, top_k=None,
                      one_trx_per_gene=True):
 
@@ -321,7 +341,7 @@ def build_gene_table(most_freq_D, h, manetD, gdD_ASO, chrX_genesetS=set(),
 
         is_xlr = genekey in chrX_genesetS
 
-        genesymbol, tid = genekey.split(':')
+        tid = metaD[genekey]['tid']
         tD = h[tid][0]
         intron_len = tD['txnLen'] - tD['exnLen']
         hgnc = manetD[tid][0]['HGNC_ID'].split(':')[-1]
@@ -438,13 +458,13 @@ def build_gene_table(most_freq_D, h, manetD, gdD_ASO, chrX_genesetS=set(),
             return 1
         return 2
 
-    gene_symbol_to_keys = collections.defaultdict(list)
+    gene_hgnc_to_keys = collections.defaultdict(list)
     for genekey in gene_infoD:
-        gene_symbol_to_keys[genekey.split(':')[0]].append(genekey)
+        gene_hgnc_to_keys[metaD[genekey]['hgnc']].append(genekey)
 
     if one_trx_per_gene:
         selected_keys = set()
-        for keys in gene_symbol_to_keys.values():
+        for keys in gene_hgnc_to_keys.values():
             selected_keys.add(min(keys, key=mane_priority))
     else:
         selected_keys = set(gene_infoD)
@@ -487,7 +507,10 @@ def build_gene_table(most_freq_D, h, manetD, gdD_ASO, chrX_genesetS=set(),
                         if cc in df_.columns:
                             desired.append(cc)
     rest = [c for c in df_.columns if c not in gene_cols and c not in desired]
-    return df_[gene_cols + desired + rest]
+    df_ = df_[gene_cols + desired + rest].copy()
+    df_['HGNC_ID'] = ['HGNC:' + metaD[g]['hgnc'] for g in df_['Gene:Transcript']]
+    df_['MANE_v1.0_symbol'] = [metaD[g]['mane_symbol'] for g in df_['Gene:Transcript']]
+    return df_
 
 
 if __name__ == "__main__":
@@ -523,13 +546,13 @@ if __name__ == "__main__":
     manetD = load_mane_by_transcript(args.mane)
     h = loadBlatOutput(args.refflat)
     gdD_ASO = load_aso_target_organs(args.aso_organs)
-    gene_presetL = load_gene_preset(args.genes, maneD)
-    print(f"{len(gene_presetL)} gene:transcript keys, {len(gdD_ASO)} genes with ASO target organs")
+    presetD = load_gene_preset(args.genes, maneD)
+    print(f"{len(presetD)} MANE transcripts, {len(gdD_ASO)} genes with ASO target organs")
 
-    most_freqD, chrX_genesetS = collect_gene_variants(args.input, gene_presetL, cohortL)
+    most_freqD, chrX_genesetS, metaD = collect_gene_variants(args.input, presetD, cohortL)
 
     def _build(one_trx):
-        return build_gene_table(most_freqD, h, manetD, gdD_ASO, chrX_genesetS=chrX_genesetS,
+        return build_gene_table(most_freqD, h, manetD, gdD_ASO, metaD, chrX_genesetS=chrX_genesetS,
                                 cohortL=cohortL, n_amen=args.top_n, one_trx_per_gene=one_trx)
 
     if args.alltrx_output:
@@ -547,7 +570,8 @@ if __name__ == "__main__":
         # ASO-target universe: an annotated target organ, minus the existing-therapy genes
         _sym = df_out['Gene:Transcript'].str.split(':').str[0]
         _organ = df_out['ASO_target_organs'].fillna('').astype(str).str.strip()
-        df_aso = df_out[(_organ != '') & ~_sym.isin(EXC_EXISTING_THERAPY)].copy()
+        _exc = _sym.isin(EXC_EXISTING_THERAPY) | df_out['MANE_v1.0_symbol'].isin(EXC_EXISTING_THERAPY)
+        df_aso = df_out[(_organ != '') & ~_exc].copy()
         df_aso.to_csv(args.aso_output, sep='\t', header=True, index=False)
         print(f"  ASO target        : {len(df_aso)} rows -> {args.aso_output}")
 

@@ -30,7 +30,12 @@ python 03_gene_incidence_table.py \
 
 `-g` is a TSV with an `HGNC_num` column: the gene universe to tabulate (the AR / XLR
 genes of the paper). Genes with no observed variant stay in the gene table with zero
-incidence. The target-organ TSV (`HGNC_num`, `GT_Target_Organs`) fills the
+incidence. Each gene is mapped to its MANE v1.0 transcripts, which are matched to the VEP
+annotations by the unversioned Ensembl transcript ID and grouped by HGNC ID, so a gene
+renamed between MANE v1.0 and the VEP release is still found (EFCAB1 in MANE v1.0 is CLXN
+in VEP 107, HGNC:25678). Rows are labelled `SYMBOL:Feature` with VEP's symbol, and the
+last two columns, `HGNC_ID` and `MANE_v1.0_symbol`, give the HGNC ID and the MANE v1.0
+symbol. The target-organ TSV (`HGNC_num`, `GT_Target_Organs`) fills the
 `ASO_target_organs` column and defines the ASO-target subset, which also drops the genes
 that already have an approved therapy. `--mane` and `--refflat` default to the annotation
 files bundled with [`aso_amenability`](../aso_amenability). The incidence model and the

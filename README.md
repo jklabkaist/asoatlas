@@ -102,6 +102,8 @@ being installed.
   overlapping genes is scored against each gene's own allele pool.
 - ClinVar records that describe the same allele under different VariationIDs are merged
   in step 1, so each allele enters the incidence once.
+- The gene set is matched to the VEP annotations by HGNC ID and Ensembl transcript ID, not
+  by gene symbol, since ClinVar, MANE v1.0 and VEP can name the same gene differently.
 - A variant is `Probably amenable` when it gains mis-splicing without severe coding or
   canonical-splice damage, `Possibly amenable` when it causes exon skipping or retention.
 - Incidence uses `(sum AF)^2` for autosomal recessive genes and `0.5 * sum(female AF)`
