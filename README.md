@@ -120,5 +120,5 @@ November 2026, assisted with preparing this release: reorganising the working sc
 into the three steps above, replacing hard-coded paths with command-line arguments,
 writing the step READMEs and the runnable examples, and reviewing the reorganised code
 against the original scripts for behavioural equivalence. It was not used to design the
-method or to generate the results. Every figure and table in the paper comes from the
-code as deposited here, and the authors are fully responsible for it.
+method or to generate the results. Every table in the paper comes from the code as 
+deposited here, and the authors are fully responsible for it.
